@@ -1,0 +1,21 @@
+# Do NOT change this file!
+
+
+language: c
+sudo: false
+dist: trusty
+before_install:
+    - gcc --version
+    - ldd --version
+install:
+    - make clean all
+script:
+    - make -k test_bugs
+addons:
+    apt:
+        packages:
+            - curl
+            - gcc-multilib
+            - libssl-dev:i386
+            - openssl
+            - prelink

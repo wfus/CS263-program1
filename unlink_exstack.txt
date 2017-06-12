@@ -1,0 +1,7 @@
+Which buffer overflow from bugs.txt does unlink_exstack.py trigger?
+
+TODO
+
+Explain whether or not each of the other buffer overflow vulnerabilities from bugs.txt can be exploited in this same manner.
+
+TODO

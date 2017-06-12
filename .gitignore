@@ -1,0 +1,22 @@
+*.o
+/zookd
+/zookd-exstack
+/zookd-nxstack
+/zookd-withssp
+/zookfs
+/zookfs-exstack
+/zookfs-nxstack
+/zookfs-withssp
+/zookld
+/shellcode*.bin
+/zooksvc
+/run-shellcode
+/submit.key
+
+# Junk #
+########
+.DS_Store*
+.*.swp
+*.swp
+*.log
+*~

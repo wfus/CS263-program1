@@ -1,0 +1,15 @@
+Which buffer overflow from bugs.txt does unlink_libc_1.py trigger?
+
+TODO
+
+Explain whether or not each of the other buffer overflow vulnerabilities from bugs.txt can be exploited in this same manner (as in unlink_libc_1.py).
+
+TODO
+
+Which buffer overflow from bugs.txt does unlink_libc_2.py trigger?
+
+TODO
+
+Explain whether or not each of the other buffer overflow vulnerabilities from bugs.txt can be exploited in this same manner (as in unlink_libc_2.py).
+
+TODO
