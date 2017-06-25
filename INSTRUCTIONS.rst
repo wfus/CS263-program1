@@ -51,7 +51,7 @@ In order to run the web server in a predictable fashion---so that its stack and 
 
 The reference binaries of zookws are provided in ``bin.tar.gz``. We will use those binaries for grading, so make sure that your exploits work on those binaries.
 
-Now, make sure that you can run the zookws web server and start the application via ``./clean-env.sh ./zookld zook-exstack.conf``. You should then be able to open your browser go to http://192.168.26.3:8080/. If something doesn't seem to be working, try to figure out what went wrong before proceeding further.
+Now, make sure that you can run the zookws web server and start the application via ``./clean-env.sh ./zookld zook-exstack.conf``. You should then be able to open your browser and go to http://192.168.26.3:8080/. If something doesn't seem to be working, try to figure out what went wrong before proceeding further.
 
 Part 1: Finding Buffer Overflows
 --------------------------------
