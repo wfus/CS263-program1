@@ -225,7 +225,7 @@ Verify that your exploit works; you will need to re-create ``/home/httpd/grades.
 
     Once you can reliably hijack the control flow of the program, find a suitable address that will contain the code you want to execute, and focus on placing the correct code at that address (perhaps from ``shellcode.bin``).
 
-    Note that ``SYS_unlink``, the number of the unlink syscall, is 10 or '\n' (newline). Why does this complicate matters? How can you get around it?
+    Note that ``SYS_unlink``, the number of the unlink syscall, is 10 or ``'\n'`` (newline). Why does this complicate matters? How can you get around it?
 
 Part 4: Return-to-libc Attacks
 ------------------------------
