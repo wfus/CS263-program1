@@ -1,3 +1,11 @@
+.. footer::
+
+    Copyright |copy| 2017, Harvard University CS263 |---|
+    all rights reserved.
+
+.. |copy| unicode:: 0xA9
+.. |---| unicode:: U+02014
+
 Buffer Overflows
 ================
 
