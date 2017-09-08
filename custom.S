@@ -1,7 +1,7 @@
 #include <sys/syscall.h>
 
-#define STRING	"/home/httpd/lab/grades.txt"
-#define STRLEN	26
+#define STRING	"/home/httpd/grades.txt"
+#define STRLEN	22
 #define ARGV	(STRLEN+1)
 
 .globl main
