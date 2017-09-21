@@ -5,23 +5,54 @@
 #    <code>
 #
 
-[zookd.c:1612]
-description goes here. for example, the 'buf' variable can be
-overwritten by the 'msg' variable because ...
+[http.c:105]
 
-    <paste offending line(s) of code here>
+    url_decode(reqpath, sp1);
 
-[http.c:1512]
+	void url_decode(char *dst, const char *src)
+{
+    for (;;)
+    {
+        if (src[0] == '%' && src[1] && src[2])
+        {
+            char hexbuf[3];
+            hexbuf[0] = src[1];
+            hexbuf[1] = src[2];
+            hexbuf[2] = '\0';
+
+            *dst = strtol(&hexbuf[0], 0, 16);
+            src += 3;
+        }
+        else if (src[0] == '+')
+        {
+            *dst = ' ';
+            src++;
+        }
+        else
+        {
+            *dst = *src;
+            src++;
+
+            if (*dst == '\0')
+                break;
+        }
+
+        dst++;
+    }
+}
+
+
+[http.c:15]
 another description.
 
     <paste offending line(s) of code here>
 
-[http.c:1512]
+[http.c:13]
 another description.
 
     <paste offending line(s) of code here>
 
-[http.c:1512]
+[http.c:12]
 another description.
 
     <paste offending line(s) of code here>
