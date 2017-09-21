@@ -1,7 +1,7 @@
 Which buffer overflow from bugs.txt does unlink_exstack.py trigger?
 
-TODO
+The bugs.txt triggers the buffer overflow that overflows the reqpath variable in zookd.c:65. 
 
 Explain whether or not each of the other buffer overflow vulnerabilities from bugs.txt can be exploited in this same manner.
 
-TODO
+Some of the other buffer overflows can be exploited in a similar manner. 
