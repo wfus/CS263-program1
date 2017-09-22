@@ -19,4 +19,11 @@ by doing someting like "GET /../../../home/httpd/your/directory" because the web
 
 
 Attack 2:
-An attacker could implement a denial of service attack. 
+An attacker could implement a denial of service attack. For example, when overflowing the envvar[512] variable it's possible 
+to overflow a file descriptor variable to stdin and cause a read() syscall to block. Therefore, an attacker could send a huge 
+number of requests that all overflow the file descriptor to standard in, causing the program to run out of file descriptors 
+and or for legitimate users to access the web server. This works because for every request that is sent, the web 
+server needs to fork a process that ultimately blocks and never quits, and allows the attacker to spawn millions of forked 
+processes on the web server ultimately causing it to crash. This vulnerability can be prepared against by doing rate limiting 
+for requests, rate limiting per IP address, or a timeout that quits a read() blocking if it blocks indefinately. It can also 
+be guarded against by preventing overflows with bounds checks of the buffers in our web server. The limitations of this specific attack to overwrite a file descriptor is that it requires a buffer overflow. In case there was no buffer overflow possible, the denial of service can be modified to just send a huge amount of spurious requests, causing the web server to run slowly or crash due to the amount of requests. 
