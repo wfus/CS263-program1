@@ -1,9 +1,20 @@
 Attack 1:
-We can send GET requests to arbitrary filepaths that are in our home directory from our webserver, since the server allows people to load the content of all of the files that exist inside the home directory. Therefore, that means that we can send a request such as http://192.168.26.3:8080/http.c, and a potential attacker can read the source code for the webserver to look for any vulnerabilities in the C code. Furthermore, the databases are also able to be pulled using a GET command, which allows for attackers to get a list of all users and hashed passwords, which they could try match it against rainbow tables and compromise user accounts. For example, sending a GET request to http://192.168.26.3:8080/zoobar/db/person/person.db would return the following output - 
+We can send GET requests to arbitrary filepaths that are in our home directory from our webserver, since the server allows 
+people to load the content of all of the files that exist inside the home directory. Therefore, that means that we can send a 
+request such as http://192.168.26.3:8080/http.c, and a potential attacker can read the source code for the webserver to look 
+for any vulnerabilities in the C code. Furthermore, the databases are also able to be pulled using a GET command, which allows 
+for attackers to get a list of all users and hashed passwords, which they could try match it against rainbow tables and 
+compromise user accounts. For example, sending a GET request to http://192.168.26.3:8080/zoobar/db/person/person.db would 
+return the following output - 
 
 SQLite format 3@ -æ üõõÏWƒ	tablepersonpersonCREATE TABLE person ( username VARCHAR(128) NOT NULL, password VARCHAR(128), token VARCHAR(128), zoobars INTEGER NOT NULL, profile VARCHAR(5000) NOT NULL, PRIMARY KEY (username) )+?indexsqlite_autoindex_person_1person ²²LMKwfu263ba44c83c6c4811fb043b59e2f7a80000 dfasdfadfafasdfadfasdfaasdfasfa ùù	wfu
 
-The attack is still limited because we can't actually change any of the data, we can just view it. Also, the password is hashed. But we can still use the username and password hash combo to do nefarious things. This works because the server code in http.c just appends "/home/httpd/lab"  to retrieve a path, which allows us to fetch all of the data stored in "/home/httpd/lab/", including all of the source code and databases. A fix that we could do would be to move all the sensitive code outside of the lab directory and in somewhere safer on the cs263 VM. Note that we wouldn't be able to use the same trick by doing someting like "GET /../../../home/httpd/your/directory" because the webserver parses out the ".." from the URL. 
+The attack is still limited because we can't actually change any of the data, we can just view it. Also, the password is 
+hashed. But we can still use the username and password hash combo to do nefarious things. This works because the server code 
+in http.c just appends "/home/httpd/lab"  to retrieve a path, which allows us to fetch all of the data stored in 
+"/home/httpd/lab/", including all of the source code and databases. A fix that we could do would be to move all the sensitive 
+code outside of the lab directory and in somewhere safer on the cs263 VM. Note that we wouldn't be able to use the same trick 
+by doing someting like "GET /../../../home/httpd/your/directory" because the webserver parses out the ".." from the URL. 
 
 
 
