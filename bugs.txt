@@ -123,7 +123,12 @@ to overwrite a return address, and since env is a static buffer it's not on the 
 	
 	
 [http.c:166]
-The envvar[512] variable can be overflown in the http_request_headers function. This happens because there is a sprintf, allowing us to copy data from the buf into envvar, where envvar is of size 512 and buf is of size 8192. Therefore, we should be able to overflow this using an extremely long header that doesn't use a HTTP_ prefix. An example request would be something like "GET /legitimate/path/definately HTTP 1.0 \r\n REQUEST_SUPER_LONG_{?}: hi \r\n" where the {?} would be of length more than 512, overflowing the envvar variable. This vulnerability would be prevented with stack canaries, since the buffer envvar lives on the stack and a common exploit would be to overwrite the return address of http_request_headers using this method.  
+The envvar[512] variable can be overflown in the http_request_headers function. This happens because there is a sprintf, 
+allowing us to copy data from the buf into envvar, where envvar is of size 512 and buf is of size 8192. Therefore, we should 
+be able to overflow this using an extremely long header that doesn't use a HTTP_ prefix. An example request would be something 
+like "GET /legitimate/path/definately HTTP 1.0 \r\n REQUEST_SUPER_LONG_{?}: hi \r\n" where the {?} would be of length more 
+than 512, overflowing the envvar variable. This vulnerability would be prevented with stack canaries, since the buffer envvar 
+lives on the stack and a common exploit would be to overwrite the return address of http_request_headers using this method.  
 
         /* Store header in env. variable for application code */
         /* Some special headers don't use the HTTP_ prefix. */
