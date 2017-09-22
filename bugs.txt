@@ -6,40 +6,41 @@
 #
 
 [http.c:105]
+The reqpath buffer from zookd can be overflowed by sp1, because the function url_decode doesn't take into account 
+length when it copies the contents of sp1 into reqpath, since reqpath is size 2048 while sp1 can be over length 8000. 
 
-    url_decode(reqpath, sp1);
-
+	url_decode(reqpath, sp1);
 	void url_decode(char *dst, const char *src)
-{
-    for (;;)
-    {
-        if (src[0] == '%' && src[1] && src[2])
-        {
-            char hexbuf[3];
-            hexbuf[0] = src[1];
-            hexbuf[1] = src[2];
-            hexbuf[2] = '\0';
+	{
+	    for (;;)
+	    {
+		if (src[0] == '%' && src[1] && src[2])
+		{
+		    char hexbuf[3];
+		    hexbuf[0] = src[1];
+		    hexbuf[1] = src[2];
+		    hexbuf[2] = '\0';
 
-            *dst = strtol(&hexbuf[0], 0, 16);
-            src += 3;
-        }
-        else if (src[0] == '+')
-        {
-            *dst = ' ';
-            src++;
-        }
-        else
-        {
-            *dst = *src;
-            src++;
+		    *dst = strtol(&hexbuf[0], 0, 16);
+		    src += 3;
+		}
+		else if (src[0] == '+')
+		{
+		    *dst = ' ';
+		    src++;
+		}
+		else
+		{
+		    *dst = *src;
+		    src++;
 
-            if (*dst == '\0')
-                break;
-        }
+		    if (*dst == '\0')
+			break;
+		}
 
-        dst++;
-    }
-}
+		dst++;
+	    }
+	}
 
 
 [http.c:15]
