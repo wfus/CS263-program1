@@ -1,7 +1,14 @@
 Which buffer overflow from bugs.txt does unlink_exstack.py trigger?
 
-The bugs.txt triggers the buffer overflow that overflows the reqpath variable in zookd.c:65. 
+This exploit triggers the buffer overflow that overflows the reqpath variable in zookd.c:65, overwriting the return address
+of process_client. 
 
 Explain whether or not each of the other buffer overflow vulnerabilities from bugs.txt can be exploited in this same manner.
 
-Some of the other buffer overflows can be exploited in a similar manner. 
+Most of the other buffer overflows from bugs.txt can be exploited in the same style, most notably the reqpath[2048] buffer, 
+value[512], envvar[512], and the pn[1024] buffer, since all of these buffers are on the stack and can be attacked to overwrite 
+return address and hijack program flow. However, the bug that allows us to overflow buf[8192] can't be exploited in the same way, because it is a static buffer and doesn't live on the stack. 
+
+
+
+
