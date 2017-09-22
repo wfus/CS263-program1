@@ -91,22 +91,30 @@ const char *http_request_line(int fd, char *reqpath, char *env, size_t *env_len)
     if (strcmp(buf, "GET") && strcmp(buf, "POST"))
         return "Unsupported request (not GET or POST)";
 
+    /* Fixes the bug where we overflow static buf[8192] from process_client in
+     * zookd, in this function passed in as *env */
+    // This next line is already guaranteed to be a GET or POST, so no need to check
+    size_t ZOOKD_BUF_SIZE = 8192;
     envp += sprintf(envp, "REQUEST_METHOD=%s", buf) + 1;
-    envp += sprintf(envp, "SERVER_PROTOCOL=%s", sp2) + 1;
+    if (envp - env < ZOOKD_BUF_SIZE)
+    	envp += snprintf(envp, ZOOKD_BUF_SIZE - (envp - env), "SERVER_PROTOCOL=%s", sp2) + 1;
 
     /* parse out query string, e.g. "foo.py?user=bob" */
     if ((qp = strchr(sp1, '?')))
     {
         *qp = '\0';
-        envp += sprintf(envp, "QUERY_STRING=%s", qp + 1) + 1;
+        if (envp - env < ZOOKD_BUF_SIZE)
+        envp += snprintf(envp, ZOOKD_BUF_SIZE - (envp - env), "QUERY_STRING=%s", qp + 1) + 1;
     }
 
     /* decode URL escape sequences in the requested path into reqpath */
-    url_decode(reqpath, sp1);
+    url_decode(reqpath, sp1, 2048);
+    
+    if (envp - env < ZOOKD_BUF_SIZE)
+    	envp += snprintf(envp, ZOOKD_BUF_SIZE - (envp - env), "REQUEST_URI=%s", reqpath) + 1;
 
-    envp += sprintf(envp, "REQUEST_URI=%s", reqpath) + 1;
-
-    envp += sprintf(envp, "SERVER_NAME=zoobar.org") + 1;
+    if (envp - env < ZOOKD_BUF_SIZE)
+    	envp += snprintf(envp, ZOOKD_BUF_SIZE - (envp - env), "SERVER_NAME=zoobar.org") + 1;
 
     *envp = 0;
     *env_len = envp - env + 1;
@@ -156,13 +164,14 @@ const char *http_request_headers(int fd)
         }
 
         /* Decode URL escape sequences in the value */
-        url_decode(value, sp);
+        url_decode(value, sp, 512);
 
         /* Store header in env. variable for application code */
         /* Some special headers don't use the HTTP_ prefix. */
         if (strcmp(buf, "CONTENT_TYPE") != 0 &&
             strcmp(buf, "CONTENT_LENGTH") != 0) {
-            sprintf(envvar, "HTTP_%s", buf);
+            /* Fixes the bug where envvar[512] gets overflowed by buf */
+            snprintf(envvar,sizeof(envvar), "HTTP_%s", buf);
             setenv(envvar, value, 1);
         } else {
             setenv(buf, value, 1);
@@ -270,6 +279,7 @@ valid_cgi_script(struct stat *st)
     return 1;
 }
 
+
 void http_serve(int fd, const char *name)
 {
     void (*handler)(int, const char *) = http_serve_none;
@@ -279,7 +289,8 @@ void http_serve(int fd, const char *name)
     getcwd(pn, sizeof(pn));
     setenv("DOCUMENT_ROOT", pn, 1);
 
-    strcat(pn, name);
+    /* Fixes the bug where pn[1024] gets overflowed */
+    strncat(pn, name, sizeof(pn));
     split_path(pn);
 
     if (!stat(pn, &st))
@@ -434,8 +445,15 @@ void http_serve_executable(int fd, const char *pn)
     }
 }
 
-void url_decode(char *dst, const char *src)
+
+/*
+ * Fixes the bugs for reqpath[2048], value[512] by
+ * checking for size argument when copying from *src to *dst
+ * to prevent writing over
+ */
+void url_decode(char *dst, const char *src, size_t size)
 {
+    size_t ctr = 0;
     for (;;)
     {
         if (src[0] == '%' && src[1] && src[2])
@@ -453,6 +471,10 @@ void url_decode(char *dst, const char *src)
             *dst = ' ';
             src++;
         }
+        else if (ctr >= size - 1)
+        {
+            break;
+        }
         else
         {
             *dst = *src;
@@ -461,7 +483,7 @@ void url_decode(char *dst, const char *src)
             if (*dst == '\0')
                 break;
         }
-
+        ctr++;
         dst++;
     }
 }

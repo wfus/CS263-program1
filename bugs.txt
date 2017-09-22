@@ -50,7 +50,7 @@ in that case.
 
 
 [http.c:159]
-The value[512] buffer can be overwritten by sp in the function http_request_headers because url_encode doesn't copy safely. Note that sp can be larger than 512 because the buffer static char buf has size 8192. Since the code in http_request_headers
+The value[512] buffer can be overwritten by sp in the function http_request_headers because url_decode doesn't copy safely. Note that sp can be larger than 512 because the buffer static char buf has size 8192. Since the code in http_request_headers
 parses for things like STUFF: MORESTUFF in the request header, a good http request that we could use to overflow value is 
 "GET /randomstuff/hi.txt HTTP 1.0 \r\n HELLO_WORLD: {?}\r\n", where the {?} consists of more than 512 characters in it. Stack
 canaries will protect against this vunerability, because it prevents us from overwriting the return address of the function 
@@ -123,33 +123,7 @@ to overwrite a return address, and since env is a static buffer it's not on the 
 	
 	
 [http.c:166]
-The envvar[512] variable can be overflown in the http_request_headers function. 
-
-    	 /* Parse things like "Cookie: foo bar" */
-        char *sp = strchr(buf, ' ');
-        if (!sp)
-            return "Header parse error (1)";
-        *sp = '\0';
-        sp++;
-
-        /* Strip off the colon, making sure it's there */
-        if (strlen(buf) == 0)
-            return "Header parse error (2)";
-
-        char *colon = &buf[strlen(buf) - 1];
-        if (*colon != ':')
-            return "Header parse error (3)";
-        *colon = '\0';
-
-        /* Set the header name to uppercase and replace hyphens with underscores */
-        for (i = 0; i < strlen(buf); i++) {
-            buf[i] = toupper(buf[i]);
-            if (buf[i] == '-')
-                buf[i] = '_';
-        }
-
-        /* Decode URL escape sequences in the value */
-        url_decode(value, sp);
+The envvar[512] variable can be overflown in the http_request_headers function. This happens because there is a sprintf, allowing us to copy data from the buf into envvar, where envvar is of size 512 and buf is of size 8192. Therefore, we should be able to overflow this using an extremely long header that doesn't use a HTTP_ prefix. An example request would be something like "GET /legitimate/path/definately HTTP 1.0 \r\n REQUEST_SUPER_LONG_{?}: hi \r\n" where the {?} would be of length more than 512, overflowing the envvar variable. This vulnerability would be prevented with stack canaries, since the buffer envvar lives on the stack and a common exploit would be to overwrite the return address of http_request_headers using this method.  
 
         /* Store header in env. variable for application code */
         /* Some special headers don't use the HTTP_ prefix. */
