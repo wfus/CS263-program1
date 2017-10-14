@@ -1,7 +1,8 @@
 Which buffer overflow from bugs.txt does crash_1.py trigger?
 
-TODO
+crash_1.py overflows the reqpath variable in zookd.c:65. The input is processed in http.c in a static variable
+buf but reqpath is the actual buffer being overflowed. 
 
 Which buffer overflow from bugs.txt does crash_2.py trigger?
 
-TODO
+crash_2.py overflows the pn[1024] variable in http_serve, in http.c:273. 

@@ -5,15 +5,166 @@
 #    <code>
 #
 
-[zookd.c:1612]
-description goes here. for example, the 'buf' variable can be
-overwritten by the 'msg' variable because ...
+[http.c:105]
+The reqpath buffer from zookd can be overflowed by sp1, because the function url_decode doesn't take into account 
+length when it copies the contents of sp1 into reqpath, since reqpath is size 2048 while sp1 can be over length 8000. 
+Since sp1 points to the first space in the request processed by http_request_line, in order to overflow the reqpath
+buffer I would try to send a request in the format "GET /{?} HTTP 1.0 \r\n\r\n", where the {?} would be a string of 
+length over 2048. Since reqpath is of size 2048 and the bad function url_decode copies from sp1 without checking
+bounds, this should overflow reqpath and allow us to overwrite the return address for process_client in zookd.c. 
+Stack canaries would help us avoid this vulnerablility, because we would not be able to overwrite the return address
+in that case. 
 
-    <paste offending line(s) of code here>
+	url_decode(reqpath, sp1);
+	void url_decode(char *dst, const char *src)
+	{
+	    for (;;)
+	    {
+		if (src[0] == '%' && src[1] && src[2])
+		{
+		    char hexbuf[3];
+		    hexbuf[0] = src[1];
+		    hexbuf[1] = src[2];
+		    hexbuf[2] = '\0';
 
-[http.c:1512]
-another description.
+		    *dst = strtol(&hexbuf[0], 0, 16);
+		    src += 3;
+		}
+		else if (src[0] == '+')
+		{
+		    *dst = ' ';
+		    src++;
+		}
+		else
+		{
+		    *dst = *src;
+		    src++;
 
-    <paste offending line(s) of code here>
+		    if (*dst == '\0')
+			break;
+		}
 
-# many more come here
+		dst++;
+	    }
+	}
+
+
+[http.c:159]
+The value[512] buffer can be overwritten by sp in the function http_request_headers because url_decode doesn't copy safely. Note that sp can be larger than 512 because the buffer static char buf has size 8192. Since the code in http_request_headers
+parses for things like STUFF: MORESTUFF in the request header, a good http request that we could use to overflow value is 
+"GET /randomstuff/hi.txt HTTP 1.0 \r\n HELLO_WORLD: {?}\r\n", where the {?} consists of more than 512 characters in it. Stack
+canaries will protect against this vunerability, because it prevents us from overwriting the return address of the function 
+http_request_headers and prevents against attackers hijacking program flow through this exploit. 
+
+	 /* Parse things like "Cookie: foo bar" */
+        char *sp = strchr(buf, ' ');
+        if (!sp)
+            return "Header parse error (1)";
+        *sp = '\0';
+        sp++;
+
+        /* Strip off the colon, making sure it's there */
+        if (strlen(buf) == 0)
+            return "Header parse error (2)";
+
+        char *colon = &buf[strlen(buf) - 1];
+        if (*colon != ':')
+            return "Header parse error (3)";
+        *colon = '\0';
+
+        /* Set the header name to uppercase and replace hyphens with underscores */
+        for (i = 0; i < strlen(buf); i++) {
+            buf[i] = toupper(buf[i]);
+            if (buf[i] == '-')
+                buf[i] = '_';
+        }
+
+        /* Decode URL escape sequences in the value */
+        url_decode(value, sp);
+
+        /* Store header in env. variable for application code */
+        /* Some special headers don't use the HTTP_ prefix. */
+        if (strcmp(buf, "CONTENT_TYPE") != 0 &&
+            strcmp(buf, "CONTENT_LENGTH") != 0) {
+            sprintf(envvar, "HTTP_%s", buf);
+            setenv(envvar, value, 1);
+        } else {
+            setenv(buf, value, 1);
+        }
+
+
+
+
+[http.c:107]
+We can overflow the static buffer env[8192] in zookd, since it gets passed as a pointer into the function http_request_line. In the function http_request_line, it copies the contents of env[8192] to a local buffer buf[8192] in http_request_line. However, in the function, we process and split up the stuff in env and then add characters like "REQUEST_URI=". There is a check for how much user input (HTML request) to make sure it doesn't exceed 8192; however, we can make the buf in http_request_line contain enough characters to cause the addition of stuff like REQUEST_URI= and SERVER_PROTOCOL=
+to overflow the env[8192] in zookd. Therefore, in order to get the buffer to overflow in practice, we should send a 
+request in the form "GET /{?} HTTP 1.0\r\n\r\n", such that we fill {?} with enough garbage characters (I used the character
+A) to make the entire request 8192 bytes long. That should cause the addition of REQUEST_URI to overflow env. 
+In this case, stack canaries won't really help fix this vulnerability, because this vulnerability doesn't allow the attacker
+to overwrite a return address, and since env is a static buffer it's not on the stack anyway. 
+
+	envp += sprintf(envp, "REQUEST_METHOD=%s", buf) + 1;
+	envp += sprintf(envp, "SERVER_PROTOCOL=%s", sp2) + 1;
+
+	/* parse out query string, e.g. "foo.py?user=bob" */
+	if ((qp = strchr(sp1, '?')))
+	{
+	*qp = '\0';
+	envp += sprintf(envp, "QUERY_STRING=%s", qp + 1) + 1;
+	}
+
+	/* decode URL escape sequences in the requested path into reqpath */
+	url_decode(reqpath, sp1);
+
+	envp += sprintf(envp, "REQUEST_URI=%s", reqpath) + 1;
+
+	envp += sprintf(envp, "SERVER_NAME=zoobar.org") + 1;
+
+	
+	
+[http.c:166]
+The envvar[512] variable can be overflown in the http_request_headers function. This happens because there is a sprintf, 
+allowing us to copy data from the buf into envvar, where envvar is of size 512 and buf is of size 8192. Therefore, we should 
+be able to overflow this using an extremely long header that doesn't use a HTTP_ prefix. An example request would be something 
+like "GET /legitimate/path/definately HTTP 1.0 \r\n REQUEST_SUPER_LONG_{?}: hi \r\n" where the {?} would be of length more 
+than 512, overflowing the envvar variable. This vulnerability would be prevented with stack canaries, since the buffer envvar 
+lives on the stack and a common exploit would be to overwrite the return address of http_request_headers using this method.  
+
+        /* Store header in env. variable for application code */
+        /* Some special headers don't use the HTTP_ prefix. */
+        if (strcmp(buf, "CONTENT_TYPE") != 0 &&
+            strcmp(buf, "CONTENT_LENGTH") != 0) {
+            sprintf(envvar, "HTTP_%s", buf);
+            setenv(envvar, value, 1);
+        } else {
+            setenv(buf, value, 1);
+        }
+
+
+
+
+
+[http.c:282]
+The pn[1024] buffer can be overwritten by the name variable because of the strcat() function, which doesn't check the size
+when it copies into pn. Since the name variable gets passed in with a larger possible size than pn (which is of size 1024), 
+we can overflow pn and corrupt memory above this stack buffer. Since this is at http_serve, we can corrupt either the 
+function pointer (*handler) or the return address of the parent function http_serve. Since the argument passed through 
+http_serve is just the filepath in our http request, which gets later appended to the document root we're in 
+(/home/httpd/lab), the HTTP Request that we need to activate this is "GET /{?} HTTP 1.0\r\n\r\n", where {?} can
+be random letters or something over the size of 1024. Note that we should make {?} a little less than 2048, because having
+it over 2048 overflows another buffer before http_serve is called. Stack canaries will help with this, since the 
+pn[1024] buffer is on the stack and canary will help prevent attackers from overwriting the function pointer (*handler)
+and the return address. 
+
+	char pn[1024];
+	struct stat st;
+	
+	getcwd(pn, sizeof(pn));
+	setenv("DOCUMENT_ROOT", pn, 1);
+
+	strcat(pn, name);
+
+
+
+
+

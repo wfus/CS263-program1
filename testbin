@@ -1,0 +1,4 @@
+cc -m32 -c -o test.o custom.S
+objcopy -S -O binary -j .text test.o test.bin
+rm test.o
+

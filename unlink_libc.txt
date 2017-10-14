@@ -1,15 +1,21 @@
 Which buffer overflow from bugs.txt does unlink_libc_1.py trigger?
 
-TODO
+This triggers the reqpath[2048] buffer overflow and overwrites the return address of process_client in zookd.
 
 Explain whether or not each of the other buffer overflow vulnerabilities from bugs.txt can be exploited in this same manner (as in unlink_libc_1.py).
 
-TODO
+Since we're really just hijacking program control by overflowing and rewriting the return address of the function, we can 
+exploit all of the buffer overflows except for the one involving the static buf[8172], because all of the other exploits other 
+than buf can also rewrite the return address of its parent function into a libc address.
+
+
 
 Which buffer overflow from bugs.txt does unlink_libc_2.py trigger?
 
-TODO
+This triggers the pn[1024] buffer overflow and overwrites the (*handler) function pointer in the same function. 
 
 Explain whether or not each of the other buffer overflow vulnerabilities from bugs.txt can be exploited in this same manner (as in unlink_libc_2.py).
 
-TODO
+The other buffer overflows cannot be exploited in the same way, because in this case we're overwriting a function pointer 
+instead of the return address of the function. Since the other buffer overflows aren't near a function pointer, we can't 
+really exploit them in the same way.
